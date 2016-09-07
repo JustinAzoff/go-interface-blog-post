@@ -35,12 +35,6 @@ func NewBoltStore(options BoltStoreOptions) (*BoltDBStore, error) {
 	return &BoltDBStore{db: db}, nil
 }
 
-func NewBoltStoreFromMap(options map[string]interface{}) (*BoltDBStore, error) {
-	opts := BoltStoreOptions{}
-	opts.filename = options["filename"].(string)
-	return NewBoltStore(opts)
-}
-
 func (b *BoltDBStore) Get(key string) (string, error) {
 	var val []byte
 	err := b.db.View(func(tx *bolt.Tx) error {
@@ -71,4 +65,24 @@ func (b *BoltDBStore) Delete(key string) error {
 		err := bucket.Delete([]byte(key))
 		return err
 	})
+}
+
+type BoltDBStoreDriver struct {
+}
+
+func (d BoltDBStoreDriver) NewFromMap(options map[string]interface{}) (KVStore, error) {
+	opts := BoltStoreOptions{}
+	opts.filename = options["filename"].(string)
+	return NewBoltStore(opts)
+}
+func (d BoltDBStoreDriver) NewFromInterface(options interface{}) (KVStore, error) {
+	opts, ok := options.(BoltStoreOptions)
+	if !ok {
+		return nil, fmt.Errorf("Invalid boltdb options %q", options)
+	}
+	return NewBoltStore(opts)
+}
+
+func init() {
+	Register("boltdb", BoltDBStoreDriver{})
 }
